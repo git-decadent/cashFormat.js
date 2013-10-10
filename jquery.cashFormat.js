@@ -1,10 +1,9 @@
 /**
 * jquery.cashFormat.js
 * @author: Egor Skorobogatov
-* @version: 1.0.0 - 2013-10-08
+* @version: 1.1.0 - 2013-10-08
 *
 * Created by Egor Skorobogatov on 2013-10-08. Please report any bugs to https://github.com/git-decadent/cashFormat.js.git
-*
 *
 * The MIT License (http://www.opensource.org/licenses/mit-license.php)
 *
@@ -22,8 +21,17 @@
 (function ($) {
 
   var cache = {},
-    acceprtCodes = {
+    acceptCodesArrows = {
+      // arrows
+      37: true,
+      38: true,
+      39: true,
+      40: true
+    },
+    acceptCodes = {
+      // backspace
       8: true,
+      // numbers
       48: true,
       49: true,
       50: true,
@@ -36,18 +44,19 @@
       57: true,
       58: true
     },
+
     splitNumber = function splitNumber(num) {
-      
-      if (num === '') {
-        return num;
+
+      if (num === '' || num === undefined) {
+        return '';
       }
-      
+
       var numResult = '',
         dettach = function (numStr) {
           var i = numStr.length - 1,
             numArr = numStr.split('').reverse(),
             result = '';
-    
+
           do {
             result += numArr[i];
             if (i % 3 === 0 && i !== 0) {
@@ -55,13 +64,15 @@
             }
             i -= 1;
           } while (i >= 0);
-      
-          return result.trim();
+
+          return $.trim(result);
         };
-  
+
       numResult += dettach(num);
+
       return numResult;
     },
+
     doGetCaretPosition = function (oField) {
       var iCaretPos = 0;
 
@@ -73,42 +84,62 @@
       } else if (oField.selectionStart || oField.selectionStart == '0') {
         iCaretPos = oField.selectionStart;
       }
-      
+
       return (iCaretPos);
     },
+
+    setSelectionRange =  function (elem, position) {
+      if (elem.setSelectionRange) {
+        elem.setSelectionRange(position, position);
+      } else {
+        var range = elem.createTextRange();
+        range.collapse(true);
+        range.moveStart('character', position);
+        range.moveEnd('character', 0);
+        range.select();
+      }
+    },
+
     trim = function (val) {
       return val.replace(/\s/gi, '');
     },
+
+    countSpaces = function (val) {
+      var spaces = val.match(/\s/gi);
+      return (spaces !== null ? spaces.length : 0);
+    },
+
     defaultOptions = {
       separator: '.'
     };
-  
+
   var Cash = function (jElem, options) {
     this.$el = $(jElem);
-    console.log(options)
     this.options = $.extend(defaultOptions, options);
-    
+
     this.$el.addClass('cash-input');
-    
+
     this.init();
   };
-  
+
   Cash.prototype.init = function () {
     var self = this,
-      val = this.$el.val();
-      
+      val = trim(this.$el.val());
+
     if (val === '' || val === null || val === undefined) {
       val = '0' + this.options.separator + '00';
-    } else {  
+    } else {
       val = val.replace('.', this.options.separator);
       if (val.search(this.options.separator) < 0) {
-        val += this.options.separator + '00';
+        val = splitNumber(val) + this.options.separator + '00';
+      } else {
+        val = splitNumber(val.split(this.options.separator)[0]) + this.options.separator + val.split(this.options.separator)[1];
       }
     }
-    
-    this.$el.val(val);  
+
+    this.$el.val(val);
     this.cacheVal = val;
-    
+
     this.$el.on({
       keyup: function (e) {
         self.handleKeyUp.call(self, e);
@@ -120,77 +151,89 @@
         self.handleChange.call(self);
       }
     });
-  }
+  };
+
   Cash.prototype.handleChange = function () {
     var parts,
       val;
-      
+
     if (this.cacheVal !== null) {
       val = this.cacheVal;
     } else {
       val = this.$el.val();
     }
-    
+
     parts = val.split(this.options.separator);
-    
+
     if (parts.length === 1) {
       val += this.options.separator + '00';
     } else if (parts[1].length <= 1) {
       val += parts[1].length === 0 ? '00' : '0';
     }
-    
+
     if (parts[0] === '') {
       val = '0' + val;
     }
-    
+
     this.$el.val(val);
-  }
+  };
   Cash.prototype.handleKeyDown = function (e) {
-    if (!acceprtCodes[e.keyCode]) {
+    if (!acceptCodes[e.keyCode] && !acceptCodesArrows[e.keyCode]) {
+      e.preventDefault();
       return;
     }
-    this.cacheVal = this.cacheVal === null ? this.$el.val() : this.cacheVal;
-  }
+    if (this.cacheVal === null) {
+      this.cacheVal = this.$el.val();
+    }
+
+    this.spaces = countSpaces(this.cacheVal);
+  };
   Cash.prototype.handleKeyUp = function (e) {
-    if (!acceprtCodes[e.keyCode]) {
+    if (!acceptCodes[e.keyCode]) {
       return;
     }
 
     var val = trim(this.$el.val()),
-      matches = /((^0(?=,|\.)|^[123456789]){0,1}[\d]*)[,\.]{1}([\d]{0,2})$/gi.exec(val),
-      caret = doGetCaretPosition(this.$el[0]);
+      matches = /(((^0(?=,|\.)|^[123456789])[\d]*)|^)[,\.]{1}([\d]{0,2})|[,\.]$/gi.exec(val),
+      caret = doGetCaretPosition(this.$el[0]),
+      currentSpaces;
 
-    if (matches === null && val.split(this.options.separator)[0] !== '') {
+    if (matches === null) {
       this.$el.val(this.cacheVal);
+      currentSpaces = -1;
     } else {
-      if (matches !== null) {
-        this.$el.val(splitNumber(matches[1]) + this.options.separator + matches[3]);
+      if (matches[0] !== this.options.separator) {
+        this.$el.val(splitNumber(matches[1]) + this.options.separator + matches[4]);
+      } else {
+        this.$el.val(this.options.separator);
       }
-      this.cacheVal = null;
 
-      this.$el[0].setSelectionRange(caret, caret);
+      this.cacheVal = null;
+      currentSpaces = countSpaces(this.$el.val()) - this.spaces;
     }
-  }
+
+    setSelectionRange(this.$el[0], caret + currentSpaces);
+  };
   Cash.prototype.getValue = function () {
     return parseFloat(trim(this.$el.val().replace(this.options.separator, '.')), 10);
-  }
-  
+  };
+
   $.fn.cashFormat = function () {
     var self = this,
       arrgs = arguments;
-    
+
     if (arguments.length === 0 || typeof arguments[0] !== 'string') {
-      $.each(this, function (key, value) {
+      $.each(this, function (key) {
         cache['cache_' + key] = new Cash(self[key], arrgs.length === 0 ? {} : arrgs[0]);
         self[key].cid = 'cache_' + key;
       });
     } else if (typeof arguments[0] === 'string') {
-      $.each(this, function (key, value) {
+      $.each(this, function (key) {
         cache[self[key].cid][arrgs[0]]();
       });
     }
 
     return this;
-  }
-  
+  };
+
 })(jQuery);
