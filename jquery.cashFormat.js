@@ -1,7 +1,8 @@
 /**
 * jquery.cashFormat.js
 * @author: Egor Skorobogatov
-* @version: 1.1.0 - 2013-10-08
+* @company Tinkoff Digital
+* @version: 1.2.0 - 2013-16-08
 *
 * Created by Egor Skorobogatov on 2013-10-08. Please report any bugs to https://github.com/git-decadent/cashFormat.js.git
 *
@@ -15,12 +16,26 @@
 * copies of the Software, and to permit persons to whom the
 * Software is furnished to do so, subject to the following
 * conditions:
-* 
+*
 */
 
 (function ($) {
 
   var cache = {},
+    commandCodes = {
+      // tab
+      9: true,
+      // ctrl
+      17: true,
+      // cmd
+      91: true
+    },
+    subCommandCodes = {
+      65: true,
+      67: true,
+      86: true,
+      88: true
+    },
     acceptCodesArrows = {
       // arrows
       37: true,
@@ -42,7 +57,24 @@
       55: true,
       56: true,
       57: true,
-      58: true
+      58: true,
+      // numpad numbers
+      96: true,
+      97: true,
+      98: true,
+      99: true,
+      100: true,
+      101: true,
+      102: true,
+      103: true,
+      104: true,
+      105: true,
+      // comma and point
+      188: true,
+      190: true,
+      // comma and point
+      44: true,
+      46: true
     },
 
     splitNumber = function splitNumber(num) {
@@ -89,7 +121,7 @@
     },
 
     setSelectionRange =  function (elem, position) {
-      if (elem.setSelectionRange) {
+      if (elem.setSelectionRange) {    
         elem.setSelectionRange(position, position);
       } else {
         var range = elem.createTextRange();
@@ -128,7 +160,7 @@
 
     if (val === '' || val === null || val === undefined) {
       val = '0' + this.options.separator + '00';
-    } else {
+    } else {  
       val = val.replace('.', this.options.separator);
       if (val.search(this.options.separator) < 0) {
         val = splitNumber(val) + this.options.separator + '00';
@@ -137,7 +169,7 @@
       }
     }
 
-    this.$el.val(val);
+    this.$el.val(val);  
     this.cacheVal = val;
 
     this.$el.on({
@@ -152,11 +184,10 @@
       }
     });
   };
-
   Cash.prototype.handleChange = function () {
     var parts,
       val;
-
+      
     if (this.cacheVal !== null) {
       val = this.cacheVal;
     } else {
@@ -177,10 +208,22 @@
 
     this.$el.val(val);
   };
+  Cash.prototype.checkCommand = function (keyCode) {
+    if (commandCodes[keyCode]) {
+      this.commandPressed = true;
+      return true;
+    }
+    
+    if (subCommandCodes[keyCode] && this.commandPressed) {
+      return true;
+    }
+  };
   Cash.prototype.handleKeyDown = function (e) {
     if (!acceptCodes[e.keyCode] && !acceptCodesArrows[e.keyCode]) {
-      e.preventDefault();
-      return;
+      if (!this.checkCommand(e.keyCode)) {
+        e.preventDefault();
+        return;
+      }
     }
     if (this.cacheVal === null) {
       this.cacheVal = this.$el.val();
@@ -189,18 +232,34 @@
     this.spaces = countSpaces(this.cacheVal);
   };
   Cash.prototype.handleKeyUp = function (e) {
+    if (commandCodes[e.keyCode]) {
+      this.commandPressed = false;
+    }
+    
     if (!acceptCodes[e.keyCode]) {
       return;
     }
 
-    var val = trim(this.$el.val()),
-      matches = /(((^0(?=,|\.)|^[123456789])[\d]*)|^)[,\.]{1}([\d]{0,2})|[,\.]$/gi.exec(val),
-      caret = doGetCaretPosition(this.$el[0]),
-      currentSpaces;
-
-    if (matches === null) {
+    var val, matches, caret, currentSpaces, fisrtSymbol;
+      
+    val = trim(this.$el.val());
+    fisrtSymbol = val.substr(0, 1);
+    matches = /(((^0(?=,|\.)|^[123456789])[\d]*)|^)[,\.]{1}([\d]{0,2})|[,\.]$/gi.exec(val);
+    caret = doGetCaretPosition(this.$el[0]);
+    
+    if (matches === null && /^[\d]+$/gi.exec(val) === null && /^\B$/gi.exec(val) === null) {
       this.$el.val(this.cacheVal);
       currentSpaces = -1;
+    } else if (matches === null && /^[\d]+$/gi.exec(val) !== null) {
+      if (fisrtSymbol === '0' && /^[0]$/gi.exec(val) === null) {
+        val = '0';
+      }
+      this.$el.val(splitNumber(val));
+      
+      this.cacheVal = null;
+      currentSpaces = countSpaces(this.$el.val()) - this.spaces; 
+    } else if (matches === null && /^\B$/gi.exec(val) !== null) {
+      currentSpaces = 0;
     } else {
       if (matches[0] !== this.options.separator) {
         this.$el.val(splitNumber(matches[1]) + this.options.separator + matches[4]);
