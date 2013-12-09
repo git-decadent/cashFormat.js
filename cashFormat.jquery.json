@@ -1,7 +1,7 @@
 {
     "name": "cashFormat",
     "title": "jQuery.cashFormat",
-    "description": "CashFormat jQuery plugin allows to replace standart text inputs to inputs for type money, like 0.00.",
+    "description": "CashFormat jQuery plugin allows to replace standart text inputs by inputs of a money type like 0.00.",
     "keywords": [
         "input",
         "form",
