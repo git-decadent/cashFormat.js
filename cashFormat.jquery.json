@@ -1,7 +1,7 @@
 {
-    "name": "cacheFormat",
-    "title": "jQuery.cacheFormat",
-    "description": "СacheFormat jQuery plugin allows to replace standart text inputs to inputs for type 'money', like '0.00'.",
+    "name": "cashFormat",
+    "title": "jQuery.cashFormat",
+    "description": "CashFormat jQuery plugin allows to replace standart text inputs to inputs for type money, like 0.00.",
     "keywords": [
         "input",
         "form",
@@ -18,8 +18,8 @@
             "url": "https://github.com/git-decadent/cacheFormat/blob/master/LICENSE-mit.md"
         }
     ],
-    "bugs": "https://github.com/git-decadent/cacheFormat/issues",
-    "homepage": "https://github.com/git-decadent/cacheFormat",
+    "bugs": "https://github.com/git-decadent/cashFormat/issues",
+    "homepage": "https://github.com/git-decadent/cashFormat",
     "dependencies": {
         "jquery": ">=1.10.2"
     }
