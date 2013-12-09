@@ -1,8 +1,7 @@
 /**
 * jquery.cashFormat.js
 * @author: Egor Skorobogatov
-* @company Tinkoff Digital
-* @version: 1.2.0 - 2013-16-08
+* @version: 1.2.2 - 2013-03-12
 *
 * Created by Egor Skorobogatov on 2013-10-08. Please report any bugs to https://github.com/git-decadent/cashFormat.js.git
 *
@@ -18,7 +17,6 @@
 * conditions:
 *
 */
-
 (function ($) {
 
   var cache = {},
@@ -121,7 +119,7 @@
     },
 
     setSelectionRange =  function (elem, position) {
-      if (elem.setSelectionRange) {    
+      if (elem.setSelectionRange) {
         elem.setSelectionRange(position, position);
       } else {
         var range = elem.createTextRange();
@@ -160,7 +158,7 @@
 
     if (val === '' || val === null || val === undefined) {
       val = '0' + this.options.separator + '00';
-    } else {  
+    } else {
       val = val.replace('.', this.options.separator);
       if (val.search(this.options.separator) < 0) {
         val = splitNumber(val) + this.options.separator + '00';
@@ -169,8 +167,9 @@
       }
     }
 
-    this.$el.val(val);  
+    this.$el.val(val);
     this.cacheVal = val;
+    this.prevVal = val;
 
     this.$el.on({
       keyup: function (e) {
@@ -186,12 +185,11 @@
   };
   Cash.prototype.handleChange = function () {
     var parts,
-      val;
+      val = this.$el.val(),
+      test = /(((^0(?=,|\.)|^[123456789])[\d]*)|^)[,\.]{1}([\d]{0,2})|[,\.]$/gi.test(trim(val));
       
-    if (this.cacheVal !== null) {
+    if (this.cacheVal !== null && test === false) {
       val = this.cacheVal;
-    } else {
-      val = this.$el.val();
     }
 
     parts = val.split(this.options.separator);
@@ -207,13 +205,18 @@
     }
 
     this.$el.val(val);
+    
+    if (this.prevVal !== val) {
+      this.$el.change();
+      this.prevVal = val;
+    }
   };
   Cash.prototype.checkCommand = function (keyCode) {
     if (commandCodes[keyCode]) {
       this.commandPressed = true;
       return true;
     }
-    
+
     if (subCommandCodes[keyCode] && this.commandPressed) {
       return true;
     }
@@ -232,21 +235,23 @@
     this.spaces = countSpaces(this.cacheVal);
   };
   Cash.prototype.handleKeyUp = function (e) {
+    if (!this.commandPressed || e.keyCode != 86) {
+      if (!acceptCodes[e.keyCode]) {
+        return;
+      }
+    }
+
     if (commandCodes[e.keyCode]) {
       this.commandPressed = false;
     }
-    
-    if (!acceptCodes[e.keyCode]) {
-      return;
-    }
 
     var val, matches, caret, currentSpaces, fisrtSymbol;
-      
+
     val = trim(this.$el.val());
     fisrtSymbol = val.substr(0, 1);
     matches = /(((^0(?=,|\.)|^[123456789])[\d]*)|^)[,\.]{1}([\d]{0,2})|[,\.]$/gi.exec(val);
     caret = doGetCaretPosition(this.$el[0]);
-    
+
     if (matches === null && /^[\d]+$/gi.exec(val) === null && /^\B$/gi.exec(val) === null) {
       this.$el.val(this.cacheVal);
       currentSpaces = -1;
@@ -255,9 +260,9 @@
         val = '0';
       }
       this.$el.val(splitNumber(val));
-      
+
       this.cacheVal = null;
-      currentSpaces = countSpaces(this.$el.val()) - this.spaces; 
+      currentSpaces = countSpaces(this.$el.val()) - this.spaces;
     } else if (matches === null && /^\B$/gi.exec(val) !== null) {
       currentSpaces = 0;
     } else {
@@ -279,6 +284,7 @@
 
   $.fn.cashFormat = function () {
     var self = this,
+      result = [],
       arrgs = arguments;
 
     if (arguments.length === 0 || typeof arguments[0] !== 'string') {
@@ -288,8 +294,10 @@
       });
     } else if (typeof arguments[0] === 'string') {
       $.each(this, function (key) {
-        cache[self[key].cid][arrgs[0]]();
+        result.push(cache[self[key].cid][arrgs[0]]());
       });
+
+      return result.length === 1 ? result[0] : result;
     }
 
     return this;
