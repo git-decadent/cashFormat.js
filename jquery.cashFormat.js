@@ -1,7 +1,7 @@
 /**
 * jquery.cashFormat.js
 * @author: Egor Skorobogatov
-* @version: 1.2.2 - 2013-03-12
+* @version: 1.3.3 - 2014-26-02
 *
 * Created by Egor Skorobogatov on 2013-10-08. Please report any bugs to https://github.com/git-decadent/cashFormat.js.git
 *
@@ -104,18 +104,27 @@
     },
 
     doGetCaretPosition = function (oField) {
-      var iCaretPos = 0;
+      var iCaretPos = {
+        start: 0,
+        end: 0
+      };
 
       if (document.selection) {
-        oField.focus ();
+        oField.focus();
         var oSel = document.selection.createRange();
-        oSel.moveStart ('character', -oField.value.length);
-        iCaretPos = oSel.text.length;
+        oSel.moveStart('character', -oField.value.length);
+        iCaretPos = {
+          start: oSel.text.length,
+          end: oSel.text.length
+        };
       } else if (oField.selectionStart || oField.selectionStart == '0') {
-        iCaretPos = oField.selectionStart;
+        iCaretPos = {
+          start: oField.selectionStart,
+          end: oField.selectionEnd
+        };
       }
 
-      return (iCaretPos);
+      return iCaretPos;
     },
 
     setSelectionRange =  function (elem, position) {
@@ -147,6 +156,8 @@
     this.$el = $(jElem);
     this.options = $.extend(defaultOptions, options);
 
+    this.oFieldSelected = false;
+
     this.$el.addClass('cash-input');
 
     this.init();
@@ -171,23 +182,41 @@
     this.cacheVal = val;
     this.prevVal = val;
 
+    this.timeout = undefined;
+
     this.$el.on({
       keyup: function (e) {
-        self.handleKeyUp.call(self, e);
+        clearTimeout(self.timeout);
+        self.timeout = setTimeout(function () {
+          self.handleKeyUp.call(self, e);
+        }, 150);
       },
       keydown: function (e) {
+        clearTimeout(self.timeout);
         self.handleKeyDown.call(self, e);
       },
       blur: function () {
         self.handleChange.call(self);
+        self.oFieldSelected = false;
+      },
+      mouseup: function (e) {
+        self.handleMouseEvent.call(self, e);
       }
     });
+  };
+  Cash.prototype.handleMouseEvent = function (e) {
+    var caret = doGetCaretPosition(e.currentTarget);
+
+    if (caret.start !== caret.end) {
+      this.oFieldSelected = true;
+    }
+
   };
   Cash.prototype.handleChange = function () {
     var parts,
       val = this.$el.val(),
       test = /(((^0(?=,|\.)|^[123456789])[\d]*)|^)[,\.]{1}([\d]{0,2})|[,\.]$/gi.test(trim(val));
-      
+
     if (this.cacheVal !== null && test === false) {
       val = this.cacheVal;
     }
@@ -205,7 +234,7 @@
     }
 
     this.$el.val(val);
-    
+
     if (this.prevVal !== val) {
       this.$el.change();
       this.prevVal = val;
@@ -232,8 +261,21 @@
       this.cacheVal = this.$el.val();
     }
 
-    this.spaces = countSpaces(this.cacheVal);
+    this.spaces = this.preCountSpaces(e.currentTarget);
   };
+  Cash.prototype.preCountSpaces = function (oField) {
+    var val = oField.value,
+      caret = doGetCaretPosition(oField);
+
+    if (this.oFieldSelected) {
+      this.oFieldSelected = false;
+      return 0;
+    } else if (caret.start === caret.end) {
+      return countSpaces(val);
+    } else {
+      return countSpaces(val.substr(caret.start, caret.end));
+    }
+  },
   Cash.prototype.handleKeyUp = function (e) {
     if (!this.commandPressed || e.keyCode != 86) {
       if (!acceptCodes[e.keyCode]) {
@@ -250,7 +292,7 @@
     val = trim(this.$el.val());
     fisrtSymbol = val.substr(0, 1);
     matches = /(((^0(?=,|\.)|^[123456789])[\d]*)|^)[,\.]{1}([\d]{0,2})|[,\.]$/gi.exec(val);
-    caret = doGetCaretPosition(this.$el[0]);
+    caret = doGetCaretPosition(this.$el[0]).start;
 
     if (matches === null && /^[\d]+$/gi.exec(val) === null && /^\B$/gi.exec(val) === null) {
       this.$el.val(this.cacheVal);
@@ -260,7 +302,6 @@
         val = '0';
       }
       this.$el.val(splitNumber(val));
-
       this.cacheVal = null;
       currentSpaces = countSpaces(this.$el.val()) - this.spaces;
     } else if (matches === null && /^\B$/gi.exec(val) !== null) {
