@@ -1,7 +1,7 @@
 /**
 * jquery.cashFormat.js
 * @author: Egor Skorobogatov
-* @version: 1.3.3 - 2014-26-02
+* @version: 1.3.4 - 2014-17-03
 *
 * Created by Egor Skorobogatov on 2013-10-08. Please report any bugs to https://github.com/git-decadent/cashFormat.js.git
 *
@@ -199,7 +199,7 @@
         self.handleChange.call(self);
         self.oFieldSelected = false;
       },
-      mouseup: function (e) {
+      select: function (e) {
         self.handleMouseEvent.call(self, e);
       }
     });
