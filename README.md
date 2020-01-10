@@ -1,35 +1,25 @@
-<h3>jQuery plugin for translation input text data to cash format</h3>
+# cashFormat.js
 
-<hr>
+jQuery plugin to format the input data as a currency
 
-<h5>Initialization</h5>
+## Usage 
 
-<pre>
+**Initialization**
+```js
   $(selector).cashFormat([options])
-</pre>
+```
 
+## Methods
 
-<hr>
+**getValue** - get the input value  
+```js
+$(selector).cashFormat('getValue')
+```
 
-<h5>Methods</h5>
+## Options
 
-  <strong>getValue</strong> - get value from the input. 
+**separator** - a separator between an integer and fractional parts. **.** (defalt) or **,**.
   
-<pre>
-  $(selector).cashFormat('getValue')
-</pre>
-
-
-<hr>
-
-<h5>Options</h5>
-
-  <strong>separator</strong> - A separator between the integer and fractional parts.
-  <ul>
-    <li>'.' - dot (default)</li>
-    <li>',' - comma</li>
-  </ul>
-  
-<pre>
-  $(selector).cashFormat({separator: ','})
-</pre>
+```js
+  $(selector).cashFormat({separator: ','});
+```
