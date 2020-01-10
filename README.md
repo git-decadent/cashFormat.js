@@ -6,14 +6,14 @@ jQuery plugin to format the input data as a currency
 
 **Initialization**
 ```js
-  $(selector).cashFormat([options])
+$(selector).cashFormat([options]);
 ```
 
 ## Methods
 
 **getValue** - get the input value  
 ```js
-$(selector).cashFormat('getValue')
+$(selector).cashFormat('getValue');
 ```
 
 ## Options
@@ -21,5 +21,5 @@ $(selector).cashFormat('getValue')
 **separator** - a separator between an integer and fractional parts. **.** (defalt) or **,**.
   
 ```js
-  $(selector).cashFormat({separator: ','});
+$(selector).cashFormat({separator: ','});
 ```
